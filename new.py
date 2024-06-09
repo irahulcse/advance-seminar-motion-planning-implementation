@@ -43,13 +43,14 @@ def astar(maze, start, end):
             while current is not None:
                 path.append(current.position)
                 current = current.parent
-            return path[::-1]
+            return path[::-1], current_node.g, current_node  # Return the path and its cost
 
         children = []
-        for new_position in [(0, -1), (0, 1), (-1, 0), (1, 0)]:
+        for new_position in [(0, -1), (0, 1), (-1, 0), (1, 0), (-1, -1), (-1, 1), (1, -1), (1, 1)]:
             node_position = (current_node.position[0] + new_position[0], current_node.position[1] + new_position[1])
 
-            if node_position[0] > (len(maze) - 1) or node_position[0] < 0 or node_position[1] > (len(maze[len(maze)-1]) -1) or node_position[1] < 0:
+            if node_position[0] > (len(maze) - 1) or node_position[0] < 0 or node_position[1] > (
+                    len(maze[len(maze) - 1]) - 1) or node_position[1] < 0:
                 continue
 
             if maze[node_position[0]][node_position[1]] != 0:
@@ -59,21 +60,27 @@ def astar(maze, start, end):
             children.append(new_node)
 
         for child in children:
-            for closed_child in closed_list:
-                if child == closed_child:
-                    continue
+            if child in closed_list:
+                continue
 
-            child.g = current_node.g + 1
-            child.h = ((child.position[0] - end_node.position[0]) ** 2) + ((child.position[1] - end_node.position[1]) ** 2)
+            # Use consistent costs for diagonal and orthogonal moves
+            cost = 14 if abs(child.position[0] - current_node.position[0]) + abs(child.position[1] - current_node.position[1]) == 2 else 10 
+            
+            # Correctly update 'g' cost
+            child.g = current_node.g + cost 
+
+            child.h = abs(child.position[0] - end_node.position[0]) + abs(
+                child.position[1] - end_node.position[1])
             child.f = child.g + child.h
 
+            # Check if child is already in open_list
             for open_node in open_list:
-                if child == open_node and child.g > open_node.g:
-                    continue
+                if child == open_node and child.g >= open_node.g:
+                    break
+            else:
+                open_list.append(child)
 
-            open_list.append(child)
-
-    return []  # Return an empty list if no path was found
+    return [], float('inf'), None  # Return an empty list if no path was found
 
 class MainWindow(QMainWindow):
     def __init__(self, *args, **kwargs):
@@ -85,7 +92,6 @@ class MainWindow(QMainWindow):
         self.layout.addWidget(self.find_path_button)
         self.setCentralWidget(QWidget(self))
         self.centralWidget().setLayout(self.layout)
-
         self.start = None
         self.end = None
         self.maze = np.zeros((10, 10))
@@ -116,17 +122,21 @@ class MainWindow(QMainWindow):
 
     def find_path(self):
         print("Finding path...")
-        path = astar(self.maze, self.start, self.end)
-        print(f"Path found: {path}")
+        path, cost, end_node = astar(self.maze, self.start, self.end)  # Get the path, its cost, and the end node
+        print(f"Path found: {path} with cost {cost}")
         if path:
+            current = end_node  # Initialize current to end_node
             for step in path:
                 print(f"Coloring cell {step}...")
                 item = self.table.item(step[0], step[1])
                 if item is None:  # If no item exists for this cell yet
                     item = QTableWidgetItem()  # Create a new item
                     self.table.setItem(step[0], step[1], item)  # Set the new item for this cell
+                item.setText(str(current.g))  # Set the text of the item to its 'g' cost
                 item.setBackground(QColor('purple'))  # Color the item
-    print("Done.")
+                current = current.parent  # Move to the parent node
+        print("Done.")
+
 app = QApplication([])
 window = MainWindow()
 window.show()
