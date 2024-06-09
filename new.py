@@ -73,6 +73,8 @@ def astar(maze, start, end):
 
             open_list.append(child)
 
+    return []  # Return an empty list if no path was found
+
 class MainWindow(QMainWindow):
     def __init__(self, *args, **kwargs):
         super(MainWindow, self).__init__(*args, **kwargs)
@@ -87,6 +89,13 @@ class MainWindow(QMainWindow):
         self.start = None
         self.end = None
         self.maze = np.zeros((10, 10))
+
+        # Set all cells to white
+        for i in range(10):
+            for j in range(10):
+                item = QTableWidgetItem()
+                item.setBackground(QColor('white'))
+                self.table.setItem(i, j, item)
 
         self.table.cellClicked.connect(self.on_click)
         self.find_path_button.clicked.connect(self.find_path)
@@ -106,15 +115,18 @@ class MainWindow(QMainWindow):
             self.table.item(row, column).setBackground(QColor('black'))
 
     def find_path(self):
+        print("Finding path...")
         path = astar(self.maze, self.start, self.end)
-        if path is not None:
+        print(f"Path found: {path}")
+        if path:
             for step in path:
+                print(f"Coloring cell {step}...")
                 item = self.table.item(step[0], step[1])
                 if item is None:  # If no item exists for this cell yet
                     item = QTableWidgetItem()  # Create a new item
                     self.table.setItem(step[0], step[1], item)  # Set the new item for this cell
-                item.setBackground(QColor('blue'))  # Color the item
-
+                item.setBackground(QColor('purple'))  # Color the item
+    print("Done.")
 app = QApplication([])
 window = MainWindow()
 window.show()
