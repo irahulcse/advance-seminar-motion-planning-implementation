@@ -100,7 +100,7 @@ class MainWindow(QMainWindow):
         self.closed_list = [] 
         self.path_found = False 
         self.timer = QTimer(self) 
-        self.timer.setInterval(500) # Set timer interval to 500ms (adjust as needed) 
+        self.timer.setInterval(100) # Set timer interval to 500ms (adjust as needed) 
         self.timer.timeout.connect(self.step_astar)
 
         # Set all cells to white
