@@ -1,32 +1,37 @@
-import sys
-from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QTableWidgetItem, QPushButton, QVBoxLayout, QWidget
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QColor
+import sys 
+from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QTableWidgetItem, QPushButton, QVBoxLayout, QWidget 
+from PyQt5.QtCore import Qt, QTimer 
+from PyQt5.QtGui import QColor 
 import numpy as np
 
-class Node:
-    def __init__(self, parent=None, position=None):
-        self.parent = parent
-        self.position = position
-        self.g = 0
-        self.h = 0
+class Node: 
+    def __init__(self, parent=None, position=None): 
+        self.parent = parent 
+        self.position = position 
+        self.g = 0 
+        self.h = 0 
         self.f = 0
 
     def __eq__(self, other):
         return self.position == other.position
 
-def astar(maze, start, end):
-    start_node = Node(None, start)
-    start_node.g = start_node.h = start_node.f = 0
-    end_node = Node(None, end)
-    end_node.g = end_node.h = end_node.f = 0
+def astar(maze, start, end, open_list=None, closed_list=None): 
+    if open_list is None: 
+        open_list = [] 
+    if closed_list is None: 
+        closed_list = []
 
-    open_list = []
-    closed_list = []
+    if len(open_list) == 0:  # If starting a new search
+        start_node = Node(None, start)
+        start_node.g = start_node.h = start_node.f = 0
+        end_node = Node(None, end)
+        end_node.g = end_node.h = end_node.f = 0
+        open_list.append(start_node)
+    else:
+        start_node = open_list[0]  # Otherwise, continue from the last state
+        end_node = Node(None, end)
 
-    open_list.append(start_node)
-
-    while len(open_list) > 0:
+    if len(open_list) > 0:
         current_node = open_list[0]
         current_index = 0
         for index, item in enumerate(open_list):
@@ -43,7 +48,7 @@ def astar(maze, start, end):
             while current is not None:
                 path.append(current.position)
                 current = current.parent
-            return path[::-1], current_node.g, current_node  # Return the path and its cost
+            return path[::-1], current_node.g, current_node, open_list, closed_list  # Return path, cost, end_node, and lists
 
         children = []
         for new_position in [(0, -1), (0, 1), (-1, 0), (1, 0), (-1, -1), (-1, 1), (1, -1), (1, 1)]:
@@ -63,38 +68,40 @@ def astar(maze, start, end):
             if child in closed_list:
                 continue
 
-            # Use consistent costs for diagonal and orthogonal moves
-            cost = 14 if abs(child.position[0] - current_node.position[0]) + abs(child.position[1] - current_node.position[1]) == 2 else 10 
-            
-            # Correctly update 'g' cost
-            child.g = current_node.g + cost 
-
-            child.h = abs(child.position[0] - end_node.position[0]) + abs(
-                child.position[1] - end_node.position[1])
+            cost = 14 if abs(child.position[0] - current_node.position[0]) + abs(child.position[1] - current_node.position[1]) == 2 else 10
+            child.g = current_node.g + cost
+            child.h = abs(child.position[0] - end_node.position[0]) + abs(child.position[1] - end_node.position[1])
             child.f = child.g + child.h
 
-            # Check if child is already in open_list
             for open_node in open_list:
                 if child == open_node and child.g >= open_node.g:
                     break
             else:
                 open_list.append(child)
 
-    return [], float('inf'), None  # Return an empty list if no path was found
+    return [], float('inf'), None, open_list, closed_list  # Return empty path and lists if no path found
 
-class MainWindow(QMainWindow):
-    def __init__(self, *args, **kwargs):
-        super(MainWindow, self).__init__(*args, **kwargs)
-        self.table = QTableWidget(10, 10, self)
-        self.find_path_button = QPushButton('Find Path')
-        self.layout = QVBoxLayout()
-        self.layout.addWidget(self.table)
-        self.layout.addWidget(self.find_path_button)
-        self.setCentralWidget(QWidget(self))
-        self.centralWidget().setLayout(self.layout)
-        self.start = None
-        self.end = None
-        self.maze = np.zeros((10, 10))
+class MainWindow(QMainWindow): 
+    def __init__(self, *args, **kwargs): 
+        super(MainWindow, self).__init__(*args, **kwargs) 
+        self.table = QTableWidget(10, 10, self) 
+        self.find_path_button = QPushButton('Step') # Changed to "Step" 
+        self.reset_button = QPushButton('Reset') 
+        self.layout = QVBoxLayout() 
+        self.layout.addWidget(self.table) 
+        self.layout.addWidget(self.find_path_button) 
+        self.layout.addWidget(self.reset_button) 
+        self.setCentralWidget(QWidget(self)) 
+        self.centralWidget().setLayout(self.layout) 
+        self.start = None 
+        self.end = None 
+        self.maze = np.zeros((10, 10)) 
+        self.open_list = [] 
+        self.closed_list = [] 
+        self.path_found = False 
+        self.timer = QTimer(self) 
+        self.timer.setInterval(500) # Set timer interval to 500ms (adjust as needed) 
+        self.timer.timeout.connect(self.step_astar)
 
         # Set all cells to white
         for i in range(10):
@@ -104,7 +111,8 @@ class MainWindow(QMainWindow):
                 self.table.setItem(i, j, item)
 
         self.table.cellClicked.connect(self.on_click)
-        self.find_path_button.clicked.connect(self.find_path)
+        self.find_path_button.clicked.connect(self.start_astar)  # Connect to start_astar
+        self.reset_button.clicked.connect(self.reset_grid)
 
     def on_click(self, row, column):
         if self.start is None:
@@ -116,28 +124,86 @@ class MainWindow(QMainWindow):
             self.table.setItem(row, column, QTableWidgetItem())
             self.table.item(row, column).setBackground(QColor('red'))
         else:
-            self.maze[row][column] = 1
-            self.table.setItem(row, column, QTableWidgetItem())
-            self.table.item(row, column).setBackground(QColor('black'))
+            if (row, column) != self.start and (row, column) != self.end:
+                self.maze[row][column] = 1 if self.maze[row][column] == 0 else 0  # Toggle obstacle
+                self.table.setItem(row, column, QTableWidgetItem())
+                self.table.item(row, column).setBackground(QColor('black') if self.maze[row][column] == 1 else 'white')
 
-    def find_path(self):
-        print("Finding path...")
-        path, cost, end_node = astar(self.maze, self.start, self.end)  # Get the path, its cost, and the end node
-        print(f"Path found: {path} with cost {cost}")
-        if path:
-            current = end_node  # Initialize current to end_node
-            for step in path:
-                print(f"Coloring cell {step}...")
+    def start_astar(self):
+        if self.start is not None and self.end is not None:
+            self.find_path_button.setEnabled(False)  # Disable the button during search
+            self.step_astar()  # Start the search process
+
+    def step_astar(self):
+        if not self.path_found:
+            self.path, cost, end_node, self.open_list, self.closed_list = astar(
+                self.maze, self.start, self.end, self.open_list, self.closed_list
+            )
+            if self.path:
+                self.path_found = True
+                self.end_node = end_node  # Store end_node as an attribute
+            self.update_grid()
+
+    def update_grid(self):
+        for i in range(10):
+            for j in range(10):
+                item = self.table.item(i, j)
+                if item is None:
+                    item = QTableWidgetItem()
+                    self.table.setItem(i, j, item)
+
+                if (i, j) == self.start:
+                    item.setBackground(QColor('green'))
+                elif (i, j) == self.end:
+                    item.setBackground(QColor('red'))
+                elif self.maze[i][j] == 1:
+                    item.setBackground(QColor('black'))
+                else:
+                    item.setBackground(QColor('white'))
+
+        for node in self.open_list:
+            item = self.table.item(node.position[0], node.position[1])
+            item.setBackground(QColor('lightblue'))
+            item.setText(f"g:{node.g}\nh:{node.h}\nf:{node.f}")
+
+        for node in self.closed_list:
+            item = self.table.item(node.position[0], node.position[1])
+            item.setBackground(QColor('lightgray'))
+            item.setText(f"g:{node.g}\nh:{node.h}\nf:{node.f}")
+
+        if self.path_found:
+            # Access end_node from the class attribute
+            current = self.end_node  
+            for step in self.path:
                 item = self.table.item(step[0], step[1])
-                if item is None:  # If no item exists for this cell yet
-                    item = QTableWidgetItem()  # Create a new item
-                    self.table.setItem(step[0], step[1], item)  # Set the new item for this cell
-                item.setText(str(current.g))  # Set the text of the item to its 'g' cost
-                item.setBackground(QColor('purple'))  # Color the item
-                current = current.parent  # Move to the parent node
-        print("Done.")
+                item.setBackground(QColor('purple'))
+                item.setText(str(current.g))  # Display 'g' cost on the path
+                current = current.parent
+            self.timer.stop()
+            self.find_path_button.setEnabled(True)  # Re-enable the button
+        else:
+            self.timer.start()
 
-app = QApplication([])
-window = MainWindow()
-window.show()
+    def reset_grid(self):
+        self.start = None
+        self.end = None
+        self.maze = np.zeros((10, 10))
+        self.open_list = []
+        self.closed_list = []
+        self.path_found = False
+        self.find_path_button.setEnabled(True)
+        self.timer.stop()
+
+        for i in range(10):
+            for j in range(10):
+                item = self.table.item(i, j)
+                if item is None:
+                    item = QTableWidgetItem()
+                    self.table.setItem(i, j, item)
+                item.setBackground(QColor('white'))
+                item.setText('')  # Clear any text
+
+app = QApplication([]) 
+window = MainWindow() 
+window.show() 
 app.exec_()

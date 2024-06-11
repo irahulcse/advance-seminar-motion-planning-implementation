@@ -35,3 +35,13 @@ A window will open with a 10x10 grid. Click on cells to set the start point (gre
 ## License
 
 This project is licensed under the terms of the MIT license.
+
+
+## Activate the environment
+
+source myenv/bin/activate
+deactivate
+
+
+source env/bin/activate
+deactivate
