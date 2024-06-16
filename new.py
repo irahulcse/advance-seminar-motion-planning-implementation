@@ -21,14 +21,14 @@ def astar(maze, start, end, open_list=None, closed_list=None):
     if closed_list is None: 
         closed_list = []
 
-    if len(open_list) == 0:  # If starting a new search
+    if len(open_list) == 0:  # start a new search
         start_node = Node(None, start)
         start_node.g = start_node.h = start_node.f = 0
         end_node = Node(None, end)
         end_node.g = end_node.h = end_node.f = 0
         open_list.append(start_node)
     else:
-        start_node = open_list[0]  # Otherwise, continue from the last state
+        start_node = open_list[0]  # continue from last moved state
         end_node = Node(None, end)
 
     if len(open_list) > 0:
@@ -60,7 +60,7 @@ def astar(maze, start, end, open_list=None, closed_list=None):
 
             if maze[node_position[0]][node_position[1]] != 0:
                 continue
-
+            
             new_node = Node(current_node, node_position)
             children.append(new_node)
 
@@ -79,13 +79,13 @@ def astar(maze, start, end, open_list=None, closed_list=None):
             else:
                 open_list.append(child)
 
-    return [], float('inf'), None, open_list, closed_list  # Return empty path and lists if no path found
+    return [], float('inf'), None, open_list, closed_list 
 
 class MainWindow(QMainWindow): 
     def __init__(self, *args, **kwargs): 
         super(MainWindow, self).__init__(*args, **kwargs) 
         self.table = QTableWidget(10, 10, self) 
-        self.find_path_button = QPushButton('Step') # Changed to "Step" 
+        self.find_path_button = QPushButton('Step') 
         self.reset_button = QPushButton('Reset') 
         self.layout = QVBoxLayout() 
         self.layout.addWidget(self.table) 
@@ -100,10 +100,9 @@ class MainWindow(QMainWindow):
         self.closed_list = [] 
         self.path_found = False 
         self.timer = QTimer(self) 
-        self.timer.setInterval(100) # Set timer interval to 500ms (adjust as needed) 
+        self.timer.setInterval(500) # set time interval to make it faster or slower
         self.timer.timeout.connect(self.step_astar)
 
-        # Set all cells to white
         for i in range(10):
             for j in range(10):
                 item = QTableWidgetItem()
@@ -111,7 +110,7 @@ class MainWindow(QMainWindow):
                 self.table.setItem(i, j, item)
 
         self.table.cellClicked.connect(self.on_click)
-        self.find_path_button.clicked.connect(self.start_astar)  # Connect to start_astar
+        self.find_path_button.clicked.connect(self.start_astar)  # connect to star a_star
         self.reset_button.clicked.connect(self.reset_grid)
 
     def on_click(self, row, column):
@@ -125,14 +124,14 @@ class MainWindow(QMainWindow):
             self.table.item(row, column).setBackground(QColor('red'))
         else:
             if (row, column) != self.start and (row, column) != self.end:
-                self.maze[row][column] = 1 if self.maze[row][column] == 0 else 0  # Toggle obstacle
+                self.maze[row][column] = 1 if self.maze[row][column] == 0 else 0  #  obstacle
                 self.table.setItem(row, column, QTableWidgetItem())
                 self.table.item(row, column).setBackground(QColor('black') if self.maze[row][column] == 1 else 'white')
 
     def start_astar(self):
         if self.start is not None and self.end is not None:
-            self.find_path_button.setEnabled(False)  # Disable the button during search
-            self.step_astar()  # Start the search process
+            self.find_path_button.setEnabled(False)  # disable  button during search
+            self.step_astar()  # start the search process
 
     def step_astar(self):
         if not self.path_found:
@@ -141,7 +140,7 @@ class MainWindow(QMainWindow):
             )
             if self.path:
                 self.path_found = True
-                self.end_node = end_node  # Store end_node as an attribute
+                self.end_node = end_node  # store end_node as an attribute
             self.update_grid()
 
     def update_grid(self):
@@ -172,15 +171,15 @@ class MainWindow(QMainWindow):
             item.setText(f"g:{node.g}\nh:{node.h}\nf:{node.f}")
 
         if self.path_found:
-            # Access end_node from the class attribute
+            # access end_node from the class attribute
             current = self.end_node  
             for step in self.path:
                 item = self.table.item(step[0], step[1])
                 item.setBackground(QColor('purple'))
-                item.setText(str(current.g))  # Display 'g' cost on the path
+                item.setText(str(current.g))  # display 'g' cost on the path
                 current = current.parent
             self.timer.stop()
-            self.find_path_button.setEnabled(True)  # Re-enable the button
+            self.find_path_button.setEnabled(True)  # renable the button
         else:
             self.timer.start()
 
@@ -201,7 +200,7 @@ class MainWindow(QMainWindow):
                     item = QTableWidgetItem()
                     self.table.setItem(i, j, item)
                 item.setBackground(QColor('white'))
-                item.setText('')  # Clear any text
+                item.setText('')  # clear text to make it more better
 
 app = QApplication([]) 
 window = MainWindow() 
