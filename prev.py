@@ -2,7 +2,6 @@ import sys
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QTableWidgetItem, QPushButton, QVBoxLayout, QWidget 
 from PyQt5.QtCore import Qt, QTimer 
 from PyQt5.QtGui import QColor 
-from PyQt5.QtGui import QFont
 import numpy as np
 
 class Node: 
@@ -86,13 +85,11 @@ class MainWindow(QMainWindow):
     def __init__(self, *args, **kwargs): 
         super(MainWindow, self).__init__(*args, **kwargs) 
         self.table = QTableWidget(10, 10, self) 
-        self.find_path_button = QPushButton('Start') 
-        self.next_button = QPushButton('Next')
+        self.find_path_button = QPushButton('Step') 
         self.reset_button = QPushButton('Reset') 
         self.layout = QVBoxLayout() 
         self.layout.addWidget(self.table) 
-        self.layout.addWidget(self.find_path_button)
-        self.layout.addWidget(self.next_button)
+        self.layout.addWidget(self.find_path_button) 
         self.layout.addWidget(self.reset_button) 
         self.setCentralWidget(QWidget(self)) 
         self.centralWidget().setLayout(self.layout) 
@@ -107,18 +104,14 @@ class MainWindow(QMainWindow):
         self.timer.timeout.connect(self.step_astar)
 
         for i in range(10):
-            self.table.setRowHeight(i, 60)  # set row height
-            self.table.setColumnWidth(i, 60)  # set column width
             for j in range(10):
                 item = QTableWidgetItem()
                 item.setBackground(QColor('white'))
                 self.table.setItem(i, j, item)
 
         self.table.cellClicked.connect(self.on_click)
-        self.find_path_button.clicked.connect(self.start_astar)  # connect to start a_star
-        self.next_button.clicked.connect(self.step_astar)  # connect to step_astar
+        self.find_path_button.clicked.connect(self.start_astar)  # connect to star a_star
         self.reset_button.clicked.connect(self.reset_grid)
-        self.next_button.setEnabled(False)  # disable Next button initially
 
     def on_click(self, row, column):
         if self.start is None:
@@ -137,8 +130,8 @@ class MainWindow(QMainWindow):
 
     def start_astar(self):
         if self.start is not None and self.end is not None:
-            self.find_path_button.setEnabled(False)  # disable Start button during search
-            self.next_button.setEnabled(True)  # enable Next button during search
+            self.find_path_button.setEnabled(False)  # disable  button during search
+            self.step_astar()  # start the search process
 
     def step_astar(self):
         if not self.path_found:
@@ -151,18 +144,12 @@ class MainWindow(QMainWindow):
             self.update_grid()
 
     def update_grid(self):
-        bold_font = QFont()
-        bold_font.setBold(True)
-        bold_font.setPointSize(10)
-
         for i in range(10):
             for j in range(10):
                 item = self.table.item(i, j)
                 if item is None:
                     item = QTableWidgetItem()
                     self.table.setItem(i, j, item)
-
-                item.setFont(bold_font)  # set font
 
                 if (i, j) == self.start:
                     item.setBackground(QColor('green'))
@@ -185,13 +172,16 @@ class MainWindow(QMainWindow):
 
         if self.path_found:
             # access end_node from the class attribute
-            current = self.end_node
+            current = self.end_node  
             for step in self.path:
                 item = self.table.item(step[0], step[1])
                 item.setBackground(QColor('purple'))
                 item.setText(str(current.g))  # display 'g' cost on the path
                 current = current.parent
-            self.next_button.setEnabled(False)  # disable Next button after search is finished
+            self.timer.stop()
+            self.find_path_button.setEnabled(True)  # renable the button
+        else:
+            self.timer.start()
 
     def reset_grid(self):
         self.start = None
@@ -201,7 +191,7 @@ class MainWindow(QMainWindow):
         self.closed_list = []
         self.path_found = False
         self.find_path_button.setEnabled(True)
-        self.next_button.setEnabled(False)  # disable Next button when grid is reset
+        self.timer.stop()
 
         for i in range(10):
             for j in range(10):
