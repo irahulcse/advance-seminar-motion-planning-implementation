@@ -107,7 +107,7 @@ class MainWindow(QMainWindow):
         self.timer.timeout.connect(self.step_astar)
 
         for i in range(10):
-            self.table.setRowHeight(i, 60)  # set row height
+            self.table.setRowHeight(i, 60) 
             self.table.setColumnWidth(i, 60)  # set column width
             for j in range(10):
                 item = QTableWidgetItem()

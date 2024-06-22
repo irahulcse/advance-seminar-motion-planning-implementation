@@ -100,7 +100,7 @@ class MainWindow(QMainWindow):
         self.closed_list = [] 
         self.path_found = False 
         self.timer = QTimer(self) 
-        self.timer.setInterval(500) # set time interval to make it faster or slower
+        # self.timer.setInterval(500) # set time interval to make it faster or slower
         self.timer.timeout.connect(self.step_astar)
 
         for i in range(10):
